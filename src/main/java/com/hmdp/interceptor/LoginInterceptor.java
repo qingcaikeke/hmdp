@@ -1,36 +1,36 @@
 package com.hmdp.interceptor;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.utils.UserHolder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-@Component
+
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static com.hmdp.utils.RedisConstants.LOGIN_USER_KEY;
+import static com.hmdp.utils.RedisConstants.LOGIN_USER_TTL;
+
+@Component //1.只有交给spring管理，别的类才能依赖注入这个对象，
+//2.只有交给spring构建，这个对象的属性才能通过auto wire注入
 public class LoginInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        //登录校验，访问频率非常高
-        //1.获取session
-        HttpSession session = request.getSession();
-        //2.从session中获取用户信息
-        Object user = session.getAttribute("user");
-        //3.用户不存在，拦截
-        if(user==null){
+        //遇到需要登录权限的，而thread中没有user对象，就拦截
+        if (UserHolder.getUser()==null) {
             response.setStatus(401);
             return false;
         }
-        //4.用户存在，保存到threadlocal
-        UserHolder.saveUser((UserDTO)user);
         return true;
-    }
 
-    @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-        UserHolder.removeUser();
     }
 }
