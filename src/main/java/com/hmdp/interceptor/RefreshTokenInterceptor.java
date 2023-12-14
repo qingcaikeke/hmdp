@@ -43,7 +43,7 @@ public class RefreshTokenInterceptor implements HandlerInterceptor {
         //之后所有需要登录校验的地方只需要去找thread拿信息，而不需要通过传递session，从session中拿信息
         UserHolder.saveUser(userDTO);
         //重设过期时间，相当于更新有效期
-        redisTemplate.expire(LOGIN_USER_KEY + token,LOGIN_USER_TTL, TimeUnit.SECONDS);
+        redisTemplate.expire(LOGIN_USER_KEY + token,365, TimeUnit.DAYS);
         return true;
     }
 
