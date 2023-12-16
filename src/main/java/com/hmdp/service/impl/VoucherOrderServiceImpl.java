@@ -1,5 +1,6 @@
 package com.hmdp.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.SeckillVoucher;
 import com.hmdp.entity.VoucherOrder;
@@ -8,9 +9,12 @@ import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
+import com.hmdp.utils.SimpleRedisLock;
 import com.hmdp.utils.UserHolder;
+import lombok.val;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,9 +36,12 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private ISeckillVoucherService seckillVoucherService;
     @Autowired
     private RedisIdWorker redisIdWorker;
+    @Autowired
+    private RedisTemplate<String,String> redisTemplate;
     @Override
 
     public Result seckillVoucher(Long voucherId) {
+
         SeckillVoucher voucher = seckillVoucherService.getById(voucherId);
         if (voucher.getBeginTime().isAfter(LocalDateTime.now())) {
             return Result.fail("秒杀未开始");
@@ -47,13 +54,25 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
         Long userId = UserHolder.getUser().getId();
         //存在问题，集群情况下每个jvm都可以加锁
-        synchronized (userId.toString().intern()) {
-            //现在同时有一人一单的悲观锁和防止超售的乐观锁
+        //初始锁：synchronized (userId.toString().intern()) { 不要手动释放锁
+        // -> 改用自定义分布式锁版本1
+        //创建分布式锁对象,key是前缀lock+业务名order+用户id，val是线程id
+        SimpleRedisLock lock  = new SimpleRedisLock(redisTemplate,"order:"+userId);
+        //获取锁
+        boolean isLock = lock.tryLock(1200);
+        if(!isLock){
+            return Result.fail("一人只能下一单");
+        }
+        //现在同时有一人一单的悲观锁和防止超售的乐观锁
             //新问题：在同一个类的另一个方法中通过this关键字调用被@Transactional注解修饰的方法，事务可能不生效，原因是没有使用spring生成的代理对象
             //获取代理对象
+        try {
             IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
             return proxy.createVoucherOrder(voucherId);
+        }finally {
+            lock.unLock();
         }
+        //}
     }
     @Transactional //涉及两张表的操作，加个事务
     //加悲观锁：1.在方法上加锁public synchronized Result createVoucherOrder

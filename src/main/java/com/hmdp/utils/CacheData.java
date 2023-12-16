@@ -59,7 +59,7 @@ public class CacheData {
     //逻辑过期时间+创建线程解决缓存击穿
     private boolean tryLock(String lock){
         //拆箱：封装类到基本类，装箱：相反                      加一个过期时间，防止出现故障，锁一直没有删
-        Boolean flag = redisTemplate.opsForValue().setIfAbsent(lock,"1",10,TimeUnit.SECONDS);
+        Boolean flag = redisTemplate.opsForValue().setIfAbsent(lock,"1",10,TimeUnit.SECONDS);//Reids实现互斥锁：setnx
         return BooleanUtil.isTrue(flag);
     }
     //解锁就是把锁删了

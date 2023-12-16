@@ -20,6 +20,7 @@ public class RedisIdWorker {
     //时间戳（31位） + 序列号（32位）
     public long nextId(String keyPrefix){
         LocalDateTime now = LocalDateTime.now();
+        //生成时间戳
         long nowSecond =now.toEpochSecond(ZoneOffset.UTC);
         long timeStamp = nowSecond - beginTimeSecond;
         //每天使用不同的key，便于统计，防止超界
