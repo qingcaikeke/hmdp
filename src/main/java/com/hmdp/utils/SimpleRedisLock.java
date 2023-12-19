@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+//使用redis实现一个简单的分布式锁
 public class SimpleRedisLock implements ILock{
 
     private RedisTemplate<String,String> redisTemplate;
