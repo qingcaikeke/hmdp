@@ -9,3 +9,4 @@ classpath：查找类文件和资源文件的路径
 
 private static final ExecutorService SECKILL_ORDER_EXECUTOR = Executors.newSingleThreadExecutor();
 public static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);
+login : token : 261b4bf8d8b54c59a9589a83eee5488f
