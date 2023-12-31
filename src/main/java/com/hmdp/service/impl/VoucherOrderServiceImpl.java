@@ -157,13 +157,14 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
     }
     private IVoucherOrderService proxy;
+    //controller调用这个
     public Result seckillVoucher(Long voucherId) {
         Long userId = UserHolder.getUser().getId();
         long orderId = redisIdWorker.nextId("order");
-//        1.执行lua脚本
+//        1.执行lua脚本,判断库存以及一人一单，脚本会往消息队列中添加任务
         Long result = redisTemplate.execute(
                 SECKILL_SCRIPT,
-                Collections.emptyList(),
+                Collections.emptyList(),//key以list的形式传入
                 voucherId.toString(), userId.toString(), String.valueOf(orderId)
         );
         int r = result.intValue();
@@ -174,7 +175,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
         //执行器需要拿到代理对象，两种方式，一种把proxy也放到阻塞队列，第二种把proxy变成成员变量
         proxy = (IVoucherOrderService) AopContext.currentProxy();
-
         return Result.ok(orderId);
     }
 //    public Result seckillVoucher(Long voucherId) {
@@ -201,6 +201,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 //
 //        return Result.ok(orderId);
 //    }
+
 //    public Result seckillVoucher(Long voucherId) {
 //
 //        SeckillVoucher voucher = seckillVoucherService.getById(voucherId);

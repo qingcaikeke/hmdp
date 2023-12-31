@@ -22,7 +22,8 @@ import java.time.LocalDateTime;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("tb_blog")
+@TableName("tb_blog")//与数据库对应的类，可以new，也可以查数据库直接返回一个对象
+//有三个非数据库字段，手动维护
 public class Blog implements Serializable {
 
     private static final long serialVersionUID = 1L;

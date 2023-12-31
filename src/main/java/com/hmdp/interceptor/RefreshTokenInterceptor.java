@@ -26,13 +26,15 @@ public class RefreshTokenInterceptor implements HandlerInterceptor {
         //1.获取session
         //HttpSession session = request.getSession();
         //token存在请求头中，具体叫什么看前端定义
-        String token = request.getHeader("authorization");
-        if(token==null){
-            return true;
-        }
+
+//        String token = request.getHeader("authorization");
+//        if(token==null){
+//            return true;
+//        }
+        String key = "login:token:d727e30e4a99484289466c0abe0751ad";
         //2.从session中获取用户信息
         //Object user = session.getAttribute("user");           entry 条目，进入，参加
-        Map<Object,Object> userMap = redisTemplate.opsForHash().entries(LOGIN_USER_KEY + token);
+        Map<Object,Object> userMap = redisTemplate.opsForHash().entries(key);
         //3.用户不存在，拦截(token过期)
         if(userMap.isEmpty()){
             return true;
@@ -43,12 +45,12 @@ public class RefreshTokenInterceptor implements HandlerInterceptor {
         //之后所有需要登录校验的地方只需要去找thread拿信息，而不需要通过传递session，从session中拿信息
         UserHolder.saveUser(userDTO);
         //重设过期时间，相当于更新有效期
-        redisTemplate.expire(LOGIN_USER_KEY + token,365, TimeUnit.DAYS);
+        redisTemplate.expire(key,365, TimeUnit.DAYS);
         return true;
     }
 
-    @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-        UserHolder.removeUser();
-    }
+//    @Override
+//    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+//        UserHolder.removeUser();
+//    }
 }
