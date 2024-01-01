@@ -19,21 +19,24 @@ import static com.hmdp.utils.RedisConstants.LOGIN_USER_TTL;
 public class RefreshTokenInterceptor implements HandlerInterceptor {
     @Autowired
     RedisTemplate<String,String> redisTemplate;
-
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         //登录校验，访问频率非常高
         //1.获取session
         //HttpSession session = request.getSession();
         //token存在请求头中，具体叫什么看前端定义
-
-//        String token = request.getHeader("authorization");
-//        if(token==null){
-//            return true;
-//        }
-        String key = "login:token:d727e30e4a99484289466c0abe0751ad";
+        String token = request.getHeader("authorization");
+        if(token==null){
+//            UserDTO noToken = new UserDTO();
+//            noToken.setId(1010L);
+//            noToken.setNickName("94813");
+//            UserHolder.saveUser(noToken);
+//            System.out.println("使用超级账号/n");
+            return true;
+        }
         //2.从session中获取用户信息
         //Object user = session.getAttribute("user");           entry 条目，进入，参加
+        String key  = LOGIN_USER_KEY + token;
         Map<Object,Object> userMap = redisTemplate.opsForHash().entries(key);
         //3.用户不存在，拦截(token过期)
         if(userMap.isEmpty()){
@@ -49,8 +52,8 @@ public class RefreshTokenInterceptor implements HandlerInterceptor {
         return true;
     }
 
-//    @Override
-//    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-//        UserHolder.removeUser();
-//    }
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        UserHolder.removeUser();
+    }
 }

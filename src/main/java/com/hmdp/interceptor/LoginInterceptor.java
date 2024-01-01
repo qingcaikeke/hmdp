@@ -28,7 +28,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         //遇到需要登录权限的，而thread中没有user对象，就拦截
         if (UserHolder.getUser()==null) {
             response.setStatus(401);
-            System.out.println("A");
+            System.out.println("未登录，被第二个拦截器拦截");
             return false;
         }
         return true;

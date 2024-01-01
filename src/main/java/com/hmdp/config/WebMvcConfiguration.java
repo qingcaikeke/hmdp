@@ -17,13 +17,13 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
         //后执行，遇到需要登录权限的操作，去判断能否从thread中拿到用户信息，拿不到拦截
         registry.addInterceptor(loginInterceptor)
                 .excludePathPatterns(
-                        "/user/code",
-                        "/user/login",
                         "/shop/**",
                         "/voucher/**",
                         "/shop-type/**",
                         "/upload/**",
-                        "/blog/hot"
+                        "/blog/hot",
+                        "/user/code",
+                        "/user/login"
                 ).order(1);
 
         //先执行，拦截所有，如果用户登陆过，就存到threadlocal中，同时每次访问都刷新时间

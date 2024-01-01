@@ -12,11 +12,13 @@ import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RegexUtils;
+import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 import java.util.HashMap;
@@ -77,11 +79,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         User user = query().eq("phone",phone).one();
         //4.查不到创建用户
         if(user==null){
+            System.out.println("chabudao");
             user = createUserWithPhone(phone);
         }
         //5.用户信息保存到session
         //session.setAttribute("user",userDTO);
         //改为到redis 1.生成uuid作为key
+        System.out.println("user!=null");
         String token = UUID.randomUUID().toString(true);
         //2.使用哈希数据类型，占用空间更少，可以对单个字段做crud
         UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
@@ -89,12 +93,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         Map<String, Object> userMap = BeanUtil.beanToMap(userDTO,new HashMap<>(),
                 CopyOptions.create().setFieldValueEditor((fieldName,fieldVal)->fieldVal.toString()));
 
-
         redisTemplate.opsForHash().putAll(LOGIN_USER_KEY + token,userMap);
         //设置过期时间，之后还需要设置通过拦截器更新有效期
         redisTemplate.expire(LOGIN_USER_KEY + token,365,TimeUnit.DAYS);
         //返回token
         return Result.ok(token);
+    }
+
+    @Override
+    public Result logout(HttpServletRequest request) {
+        String token = request.getHeader("authorization");
+        redisTemplate.delete(LOGIN_USER_KEY + token);
+        UserHolder.removeUser();
+        return Result.ok("redis中删除，userholder中删除");
     }
 
     private User createUserWithPhone(String phone) {
@@ -105,6 +116,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         user.setNickName(USER_NICK_NAME_PREFIX + RandomUtil.randomString(10));
         //2.保存用户,使用mybatis-plus
         save(user);
+        System.out.println(user.getPhone().toString()+user.getNickName().toString()+"A");
+        System.out.println("------------------");
         return user;
     }
 }

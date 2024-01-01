@@ -13,3 +13,7 @@ public static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedT
 login : token : 261b4bf8d8b54c59a9589a83eee5488f
 
 docker exec -it redis redis-cli
+
+pathvariable 是大括号  @RequestParam是   /?a=123/(当方法上参数的名称和url地址栏不相同时，可以通过RequestParam 来进行指定)
+
+offset偏移量
