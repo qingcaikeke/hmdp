@@ -15,13 +15,18 @@ import com.hmdp.utils.RegexUtils;
 import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import sun.util.resources.cldr.ext.CurrencyNames_en_SL;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -106,6 +111,60 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         redisTemplate.delete(LOGIN_USER_KEY + token);
         UserHolder.removeUser();
         return Result.ok("redis中删除，userholder中删除");
+    }
+
+    @Override
+    //用 位图（bitmap）实现签到 key是用户id加月份，val是一个32位数，第5位为1就表示第五天签到了
+    public Result sign() {
+        // 1.获取当前登录用户
+        Long userId = UserHolder.getUser().getId();
+        // 2.获取日期
+        LocalDateTime now = LocalDateTime.now();
+        // 3.拼接key
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        String key = USER_SIGN_KEY + userId + keySuffix;
+        // 4.获取今天是本月的第几天
+        int dayOfMonth = now.getDayOfMonth();
+        // 5.写入Redis SETBIT key offset 1
+        redisTemplate.opsForValue().setBit(key, dayOfMonth - 1, true);
+        return Result.ok();
+    }
+
+    @Override
+    //统计的是当包括前天的连续签到天数，而不是最大连续签到
+    public Result signCount() {
+        // 1.获取当前登录用户
+        Long userId = UserHolder.getUser().getId();
+        // 2.获取日期
+        LocalDateTime now = LocalDateTime.now();
+        // 3.拼接key
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        String key = USER_SIGN_KEY + userId + keySuffix;
+        // 4.获取今天是本月的第几天
+        int dayOfMonth = now.getDayOfMonth();
+        //BITFIELD key GET(可以有多个命令，get，set,incrby) u14（type(无符号数)）（查14位） 0（从第一位开始查）
+        //因为可以有多个命令，所以返回的是一个list
+        List<Long> result = redisTemplate.opsForValue().bitField(
+                key,
+                BitFieldSubCommands.create().get(BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth)).valueAt(0)
+        );
+        if (result == null || result.isEmpty()) {
+            // 没有任何签到结果
+            return Result.ok(0);
+        }
+        //注意：返回的签到位图是一个十进制数
+        Long num = result.get(0);
+        //计算从最后一天开始，连续签到了几天
+        int count=0;
+        while (true){
+            if((num & 1)==0){
+                break;
+            }else {
+                count++;
+            }
+            num = num >>> 1 ;//无符号右移
+        }
+        return Result.ok(count);
     }
 
     private User createUserWithPhone(String phone) {
