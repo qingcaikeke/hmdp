@@ -18,3 +18,5 @@ pathvariable 是大括号  @RequestParam是   /?a=123/(当方法上参数的名�
 **函数参数提示: ctrl + p
 offset偏移量
 plaintext ：明文
+
+后续改进：改用jwt令牌实现登录校验，异步下单的消息队列使用rabbitMq，加入elasticSearch，加入主从哨兵
